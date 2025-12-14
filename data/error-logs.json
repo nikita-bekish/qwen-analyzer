@@ -1,0 +1,327 @@
+[
+  {
+    "timestamp": "2024-12-10T08:15:23.456Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "error_type": "DatabaseConnectionError",
+    "message": "Failed to connect to PostgreSQL database",
+    "user_id": "user_1234",
+    "request_id": "req_a1b2c3",
+    "stack_trace": "at Database.connect (db.js:45)\n  at AuthService.login (auth.js:12)",
+    "metadata": {
+      "database": "postgres://prod-db-01",
+      "retry_count": 3,
+      "response_time_ms": 5000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:16:11.234Z",
+    "level": "ERROR",
+    "service": "payment-service",
+    "error_type": "PaymentGatewayTimeout",
+    "message": "Payment gateway request timed out",
+    "user_id": "user_5678",
+    "request_id": "req_d4e5f6",
+    "stack_trace": "at PaymentGateway.charge (payment.js:78)\n  at OrderService.checkout (order.js:34)",
+    "metadata": {
+      "gateway": "stripe",
+      "amount": 99.99,
+      "currency": "USD",
+      "retry_count": 2,
+      "response_time_ms": 30000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:17:45.678Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "error_type": "InvalidCredentials",
+    "message": "Invalid username or password",
+    "user_id": null,
+    "request_id": "req_g7h8i9",
+    "stack_trace": "at AuthService.validateCredentials (auth.js:56)",
+    "metadata": {
+      "username": "john.doe@example.com",
+      "ip_address": "192.168.1.100",
+      "attempt_count": 1,
+      "response_time_ms": 120
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:18:32.901Z",
+    "level": "ERROR",
+    "service": "api-gateway",
+    "error_type": "RateLimitExceeded",
+    "message": "Rate limit exceeded for API endpoint",
+    "user_id": "user_9012",
+    "request_id": "req_j0k1l2",
+    "stack_trace": "at RateLimiter.check (ratelimit.js:23)\n  at APIGateway.handleRequest (gateway.js:89)",
+    "metadata": {
+      "endpoint": "/api/v1/users",
+      "limit": 100,
+      "current_count": 156,
+      "window_seconds": 60,
+      "response_time_ms": 5
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:19:15.123Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "error_type": "DatabaseConnectionError",
+    "message": "Failed to connect to PostgreSQL database",
+    "user_id": "user_3456",
+    "request_id": "req_m3n4o5",
+    "stack_trace": "at Database.connect (db.js:45)\n  at AuthService.login (auth.js:12)",
+    "metadata": {
+      "database": "postgres://prod-db-01",
+      "retry_count": 3,
+      "response_time_ms": 5000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:20:48.456Z",
+    "level": "ERROR",
+    "service": "notification-service",
+    "error_type": "EmailDeliveryFailed",
+    "message": "Failed to send email notification",
+    "user_id": "user_7890",
+    "request_id": "req_p6q7r8",
+    "stack_trace": "at EmailService.send (email.js:34)\n  at NotificationService.notify (notification.js:67)",
+    "metadata": {
+      "provider": "sendgrid",
+      "recipient": "user@example.com",
+      "template": "order_confirmation",
+      "retry_count": 1,
+      "response_time_ms": 2000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:21:22.789Z",
+    "level": "ERROR",
+    "service": "payment-service",
+    "error_type": "InsufficientFunds",
+    "message": "Payment declined due to insufficient funds",
+    "user_id": "user_2345",
+    "request_id": "req_s9t0u1",
+    "stack_trace": "at PaymentGateway.charge (payment.js:78)",
+    "metadata": {
+      "gateway": "stripe",
+      "amount": 249.99,
+      "currency": "USD",
+      "card_last4": "4242",
+      "response_time_ms": 850
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:22:05.012Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "error_type": "InvalidCredentials",
+    "message": "Invalid username or password",
+    "user_id": null,
+    "request_id": "req_v2w3x4",
+    "stack_trace": "at AuthService.validateCredentials (auth.js:56)",
+    "metadata": {
+      "username": "admin@example.com",
+      "ip_address": "192.168.1.100",
+      "attempt_count": 3,
+      "response_time_ms": 95
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:23:41.345Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "error_type": "DatabaseConnectionError",
+    "message": "Failed to connect to PostgreSQL database",
+    "user_id": "user_6789",
+    "request_id": "req_y5z6a7",
+    "stack_trace": "at Database.connect (db.js:45)\n  at AuthService.login (auth.js:12)",
+    "metadata": {
+      "database": "postgres://prod-db-01",
+      "retry_count": 3,
+      "response_time_ms": 5000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:24:18.678Z",
+    "level": "ERROR",
+    "service": "api-gateway",
+    "error_type": "ServiceUnavailable",
+    "message": "Upstream service is unavailable",
+    "user_id": "user_4567",
+    "request_id": "req_b8c9d0",
+    "stack_trace": "at APIGateway.proxyRequest (gateway.js:112)",
+    "metadata": {
+      "upstream_service": "inventory-service",
+      "endpoint": "/api/v1/inventory/check",
+      "status_code": 503,
+      "retry_count": 2,
+      "response_time_ms": 15000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:25:33.901Z",
+    "level": "ERROR",
+    "service": "payment-service",
+    "error_type": "PaymentGatewayTimeout",
+    "message": "Payment gateway request timed out",
+    "user_id": "user_8901",
+    "request_id": "req_e1f2g3",
+    "stack_trace": "at PaymentGateway.charge (payment.js:78)\n  at OrderService.checkout (order.js:34)",
+    "metadata": {
+      "gateway": "stripe",
+      "amount": 149.99,
+      "currency": "USD",
+      "retry_count": 3,
+      "response_time_ms": 30000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:26:12.234Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "error_type": "InvalidCredentials",
+    "message": "Invalid username or password",
+    "user_id": null,
+    "request_id": "req_h4i5j6",
+    "stack_trace": "at AuthService.validateCredentials (auth.js:56)",
+    "metadata": {
+      "username": "john.doe@example.com",
+      "ip_address": "192.168.1.100",
+      "attempt_count": 2,
+      "response_time_ms": 110
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:27:45.567Z",
+    "level": "ERROR",
+    "service": "cache-service",
+    "error_type": "RedisConnectionError",
+    "message": "Failed to connect to Redis cache",
+    "user_id": null,
+    "request_id": "req_k7l8m9",
+    "stack_trace": "at RedisClient.connect (redis.js:34)",
+    "metadata": {
+      "redis_host": "redis://cache-01.prod",
+      "retry_count": 5,
+      "response_time_ms": 3000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:28:21.890Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "error_type": "DatabaseConnectionError",
+    "message": "Failed to connect to PostgreSQL database",
+    "user_id": "user_0123",
+    "request_id": "req_n0o1p2",
+    "stack_trace": "at Database.connect (db.js:45)\n  at AuthService.login (auth.js:12)",
+    "metadata": {
+      "database": "postgres://prod-db-01",
+      "retry_count": 3,
+      "response_time_ms": 5000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:29:03.123Z",
+    "level": "ERROR",
+    "service": "api-gateway",
+    "error_type": "RateLimitExceeded",
+    "message": "Rate limit exceeded for API endpoint",
+    "user_id": "user_9012",
+    "request_id": "req_q3r4s5",
+    "stack_trace": "at RateLimiter.check (ratelimit.js:23)\n  at APIGateway.handleRequest (gateway.js:89)",
+    "metadata": {
+      "endpoint": "/api/v1/users",
+      "limit": 100,
+      "current_count": 201,
+      "window_seconds": 60,
+      "response_time_ms": 3
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:30:15.456Z",
+    "level": "ERROR",
+    "service": "payment-service",
+    "error_type": "CardDeclined",
+    "message": "Payment card was declined by issuer",
+    "user_id": "user_3456",
+    "request_id": "req_t6u7v8",
+    "stack_trace": "at PaymentGateway.charge (payment.js:78)",
+    "metadata": {
+      "gateway": "stripe",
+      "amount": 399.99,
+      "currency": "USD",
+      "card_last4": "1234",
+      "decline_code": "generic_decline",
+      "response_time_ms": 650
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:31:42.789Z",
+    "level": "ERROR",
+    "service": "notification-service",
+    "error_type": "EmailDeliveryFailed",
+    "message": "Failed to send email notification",
+    "user_id": "user_5678",
+    "request_id": "req_w9x0y1",
+    "stack_trace": "at EmailService.send (email.js:34)\n  at NotificationService.notify (notification.js:67)",
+    "metadata": {
+      "provider": "sendgrid",
+      "recipient": "bounced@example.com",
+      "template": "password_reset",
+      "retry_count": 2,
+      "response_time_ms": 1800
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:32:28.012Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "error_type": "DatabaseConnectionError",
+    "message": "Failed to connect to PostgreSQL database",
+    "user_id": "user_7890",
+    "request_id": "req_z2a3b4",
+    "stack_trace": "at Database.connect (db.js:45)\n  at AuthService.login (auth.js:12)",
+    "metadata": {
+      "database": "postgres://prod-db-01",
+      "retry_count": 3,
+      "response_time_ms": 5000
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:33:05.345Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "error_type": "InvalidCredentials",
+    "message": "Invalid username or password",
+    "user_id": null,
+    "request_id": "req_c5d6e7",
+    "stack_trace": "at AuthService.validateCredentials (auth.js:56)",
+    "metadata": {
+      "username": "admin@example.com",
+      "ip_address": "192.168.1.100",
+      "attempt_count": 4,
+      "response_time_ms": 102
+    }
+  },
+  {
+    "timestamp": "2024-12-10T08:34:19.678Z",
+    "level": "ERROR",
+    "service": "payment-service",
+    "error_type": "PaymentGatewayTimeout",
+    "message": "Payment gateway request timed out",
+    "user_id": "user_1234",
+    "request_id": "req_f8g9h0",
+    "stack_trace": "at PaymentGateway.charge (payment.js:78)\n  at OrderService.checkout (order.js:34)",
+    "metadata": {
+      "gateway": "stripe",
+      "amount": 199.99,
+      "currency": "USD",
+      "retry_count": 3,
+      "response_time_ms": 30000
+    }
+  }
+]

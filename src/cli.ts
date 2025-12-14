@@ -1,0 +1,114 @@
+import * as readline from 'readline';
+import { RAGSystem } from './rag';
+import { OllamaClient } from './ollama';
+
+export class CLI {
+  private rag: RAGSystem;
+  private rl: readline.Interface;
+
+  constructor() {
+    this.rag = new RAGSystem();
+    this.rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+  }
+
+  private async question(prompt: string): Promise<string> {
+    return new Promise((resolve) => {
+      this.rl.question(prompt, (answer) => {
+        resolve(answer);
+      });
+    });
+  }
+
+  private printHeader(): void {
+    console.clear();
+    console.log('╔════════════════════════════════════════════════════════╗');
+    console.log('║         🔍 QWEN LOCAL DATA ANALYZER 🔍                ║');
+    console.log('║   Локальный аналитик данных с использованием RAG      ║');
+    console.log('╚════════════════════════════════════════════════════════╝\n');
+  }
+
+  private printHelp(): void {
+    console.log('\n📚 Примеры вопросов:');
+    console.log('  • Какая ошибка встречается чаще всего?');
+    console.log('  • Какой сервис генерирует больше всего ошибок?');
+    console.log('  • Сколько было ошибок DatabaseConnectionError?');
+    console.log('  • Какие проблемы есть в payment-service?');
+    console.log('  • Есть ли проблемы с одним IP адресом?');
+    console.log('  • Какое среднее время ответа для PaymentGatewayTimeout?\n');
+  }
+
+  async start(): Promise<void> {
+    this.printHeader();
+
+    // Проверяем доступность моделей
+    console.log('🔍 Проверка доступности моделей Ollama...');
+    const ollama = new OllamaClient();
+    const modelsAvailable = await ollama.checkModels();
+
+    if (!modelsAvailable.chat) {
+      console.error('❌ Модель qwen2.5-coder:7b не найдена!');
+      console.error('   Установите её: ollama pull qwen2.5-coder:7b');
+      process.exit(1);
+    }
+
+    if (!modelsAvailable.embedding) {
+      console.error('❌ Модель nomic-embed-text не найдена!');
+      console.error('   Установите её: ollama pull nomic-embed-text');
+      process.exit(1);
+    }
+
+    console.log('✅ Все модели доступны\n');
+
+    // Загружаем и индексируем логи
+    const logFilePath = './data/error-logs.json';
+    try {
+      await this.rag.loadAndIndexLogs(logFilePath);
+    } catch (error) {
+      console.error(`❌ Ошибка загрузки файла ${logFilePath}:`, error);
+      process.exit(1);
+    }
+
+    // Показываем статистику
+    console.log(this.rag.getStatistics());
+    this.printHelp();
+
+    // Интерактивный цикл вопрос-ответ
+    await this.interactiveMode();
+  }
+
+  private async interactiveMode(): Promise<void> {
+    console.log('\n' + '═'.repeat(60));
+    console.log('💬 Режим вопросов-ответов (введите "exit" для выхода)\n');
+
+    while (true) {
+      const question = await this.question('❓ Ваш вопрос: ');
+
+      if (question.toLowerCase() === 'exit' || question.toLowerCase() === 'quit') {
+        console.log('\n👋 До свидания!');
+        this.rl.close();
+        break;
+      }
+
+      if (!question.trim()) {
+        continue;
+      }
+
+      console.log('\n' + '─'.repeat(60));
+
+      // Задаем вопрос с streaming ответом
+      try {
+        await this.rag.askQuestion(question, (token) => {
+          process.stdout.write(token);
+        });
+
+        console.log('\n' + '─'.repeat(60) + '\n');
+      } catch (error) {
+        console.error('\n❌ Ошибка при обработке вопроса:', error);
+        console.log('─'.repeat(60) + '\n');
+      }
+    }
+  }
+}
