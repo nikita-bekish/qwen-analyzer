@@ -1,0 +1,20 @@
+{
+  "name": "Никита",
+  "role": "Frontend Developer",
+  "experience": "Middle+",
+  "timezone": "Europe/Moscow",
+  "preferences": {
+    "answerStyle": "краткий",
+    "includeRecommendations": true,
+    "technicalLevel": "advanced",
+    "useEmoji": true
+  },
+  "responsibilities": {
+    "services": ["auth-service", "payment-service"],
+    "criticalErrors": ["DatabaseConnectionError", "PaymentGatewayTimeout"]
+  },
+  "workingHours": {
+    "start": "09:00",
+    "end": "18:00"
+  }
+}

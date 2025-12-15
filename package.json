@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc",
     "start": "tsx src/index.ts",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "test": "node --import tsx --test 'src/**/*.test.ts'"
   },
   "keywords": [],
   "author": "",

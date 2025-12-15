@@ -1,13 +1,16 @@
 import * as readline from 'readline';
 import { RAGSystem } from './rag';
 import { OllamaClient } from './ollama';
+import { PersonalizationManager } from './personalization';
 
 export class CLI {
   private rag: RAGSystem;
   private rl: readline.Interface;
+  private personalization: PersonalizationManager;
 
   constructor() {
     this.rag = new RAGSystem();
+    this.personalization = new PersonalizationManager();
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -43,6 +46,18 @@ export class CLI {
   async start(): Promise<void> {
     this.printHeader();
 
+    // Загружаем профиль персонализации
+    try {
+      await this.personalization.loadProfile();
+      this.rag.setPersonalization(this.personalization);
+
+      // Персонализированное приветствие
+      console.log(this.personalization.getGreeting());
+      console.log('');
+    } catch (error) {
+      console.log('ℹ️  Профиль персонализации не найден. Работаю в стандартном режиме.\n');
+    }
+
     // Проверяем доступность моделей
     console.log('🔍 Проверка доступности моделей Ollama...');
     const ollama = new OllamaClient();
@@ -73,6 +88,13 @@ export class CLI {
 
     // Показываем статистику
     console.log(this.rag.getStatistics());
+
+    // Показываем персонализированную сводку
+    const personalizedSummary = this.rag.getPersonalizedSummary();
+    if (personalizedSummary) {
+      console.log(personalizedSummary);
+    }
+
     this.printHelp();
 
     // Интерактивный цикл вопрос-ответ
@@ -87,7 +109,10 @@ export class CLI {
       const question = await this.question('❓ Ваш вопрос: ');
 
       if (question.toLowerCase() === 'exit' || question.toLowerCase() === 'quit') {
-        console.log('\n👋 До свидания!');
+        const profile = this.personalization.getProfile();
+        const emoji = profile?.preferences.useEmoji ? '👋 ' : '';
+        const name = profile?.name ? `, ${profile.name}` : '';
+        console.log(`\n${emoji}До свидания${name}!`);
         this.rl.close();
         break;
       }

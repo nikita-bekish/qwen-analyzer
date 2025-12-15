@@ -2,6 +2,7 @@ import * as crypto from "crypto";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { OllamaClient } from "./ollama";
+import { PersonalizationManager } from "./personalization";
 
 interface ErrorLog {
   timestamp: string;
@@ -32,9 +33,15 @@ export class RAGSystem {
   private embeddedLogs: EmbeddedLog[] = [];
   private allLogs: ErrorLog[] = [];
   private cacheDir = "./data/.cache";
+  private personalization?: PersonalizationManager;
 
   constructor() {
     this.ollama = new OllamaClient();
+  }
+
+  // Установить менеджер персонализации
+  setPersonalization(personalization: PersonalizationManager): void {
+    this.personalization = personalization;
   }
 
   // Вычисление хеша файла для валидации кеша
@@ -205,12 +212,98 @@ ${sortedServices}
     `.trim();
   }
 
+  // Получить персонализированную сводку
+  getPersonalizedSummary(): string {
+    if (!this.personalization) {
+      return "";
+    }
+
+    const profile = this.personalization.getProfile();
+    if (!profile) {
+      return "";
+    }
+
+    // Находим проблемы в сервисах пользователя
+    const userServices = profile.responsibilities.services;
+
+    const relevantLogs = this.allLogs.filter((log) =>
+      this.personalization!.isRelevantToUser(log.service, log.error_type)
+    );
+
+    if (relevantLogs.length === 0) {
+      const emoji = profile.preferences.useEmoji ? " ✅" : "";
+      return `\n${emoji} В твоих сервисах (${userServices.join(
+        ", "
+      )}) всё спокойно!`;
+    }
+
+    const emoji = profile.preferences.useEmoji ? " ⚠️" : "";
+    return `\n${emoji} ВАЖНО ДЛЯ ТЕБЯ: ${relevantLogs.length} проблем${
+      relevantLogs.length === 1 ? "а" : ""
+    } в твоих сервисах (${userServices.join(", ")})`;
+  }
+
   // Задать вопрос с использованием RAG
   async askQuestion(
     question: string,
     onToken?: (token: string) => void
   ): Promise<string> {
-    // Определяем, нужны ли детальные примеры
+    const raw = question ?? "";
+    const q = raw
+      .trim()
+      .toLowerCase()
+      .replace(/[!?.,:;()"'`]/g, "") // убираем пунктуацию
+      .replace(/\s+/g, " "); // нормализуем пробелы
+
+    const profile = this.personalization?.getProfile?.() ?? null;
+
+    const isNameQuery =
+      /\b(как\s+)?меня\s+зовут\b/.test(q) ||
+      /\bмо[её]\s+имя\b/.test(q) ||
+      /\bимя\s+профил(я|е)\b/.test(q);
+
+    if (isNameQuery) {
+      if (profile?.name) {
+        const emoji = profile.preferences.useEmoji ? "👤 " : "";
+        const response = `${emoji}${profile.name}`;
+        if (onToken) response.split("").forEach(onToken);
+        return response;
+      }
+
+      const response = "Имя в профиле не задано.";
+      if (onToken) response.split("").forEach(onToken);
+      return response;
+    }
+
+    // Определяем тип вопроса
+    const isPersonalQuery =
+      /расскажи.*обо мне|кто я|что.*знаешь.*обо мне|мой профиль|моя информация|какое.*имя.*пользовател|какое.*имя.*профил|как.*меня.*зовут|моё имя|мое имя/i.test(
+        question
+      );
+
+    // Если это личный вопрос и есть персонализация - отвечаем без RAG
+    if (isPersonalQuery && this.personalization) {
+      const profile = this.personalization.getProfile();
+      if (profile) {
+        const emoji = profile.preferences.useEmoji ? "👤 " : "";
+        const response = `${emoji}Вот что я знаю о тебе:
+
+${this.personalization.getUserContext()}
+
+Рабочие часы: ${profile.workingHours.start} - ${profile.workingHours.end}
+Стиль ответов: ${profile.preferences.answerStyle}
+Технический уровень: ${profile.preferences.technicalLevel}
+
+${this.getPersonalizedSummary()}`;
+
+        // Выводим ответ сразу (без streaming для простоты)
+        if (onToken) {
+          response.split("").forEach((char) => onToken(char));
+        }
+        return response;
+      }
+    }
+
     const isStatisticalQuery =
       /сколько|какая.*чаще|какой.*больше|какая.*самая|топ|статистика/i.test(
         question
@@ -234,37 +327,127 @@ User ID: ${log.user_id || "N/A"}
       )
       .join("\n\n---\n\n");
 
+    // Получаем контекст пользователя если есть персонализация
+    // const profile = this.personalization?.getProfile() ?? null;
+
+    const userContext = this.personalization
+      ? `USER CONTEXT:\n${this.personalization.getUserContext()}\n`
+      : `USER CONTEXT:\nне задан\n`;
+
+    const technicalLevel = profile?.preferences?.technicalLevel || "advanced";
+    const useEmoji = profile?.preferences?.useEmoji ?? false;
+
+    const responsibleServices = profile?.responsibilities?.services?.length
+      ? profile.responsibilities.services.join(", ")
+      : "не указано";
+
+    const criticalErrors = profile?.responsibilities?.criticalErrors?.length
+      ? profile.responsibilities.criticalErrors.join(", ")
+      : "не указано";
+
+    const decisionPolicy = `
+DECISION POLICY (ОБЯЗАТЕЛЬНО):
+1. Если ошибка относится к сервисам пользователя (${responsibleServices}) → это ГЛАВНЫЙ ПРИОРИТЕТ ответа.
+2. Если тип ошибки входит в критичные (${criticalErrors}) → помечай как "КРИТИЧНО ДЛЯ ТЕБЯ" и выноси в начало.
+3. Чужие сервисы упоминай кратко, без углубления.
+4. Уровень объяснений: ${technicalLevel}. Базовые вещи не объясняй.
+5. Пиши напрямую пользователю: "у тебя", "твой сервис", "твоя зона ответственности".
+`.trim();
+
+    const outputRules = `
+OUTPUT RULES (ОБЯЗАТЕЛЬНО):
+- Запрещено отвечать обезличенно ("в системе", "в целом", "обычно").
+- Запрещены предположения без данных ("возможно", "вероятно") в статистическом режиме.
+- Если emoji отключены — не используй emoji вообще.
+- Не пересказывай логи: анализируй и делай выводы.
+`.trim();
+
+    const responseFormat = `
+RESPONSE FORMAT (ОБЯЗАТЕЛЕН):
+1) ВЫВОД (1–2 строки, персонально)
+2) ЧТО ПРОИСХОДИТ (факты, цифры)
+3) ПОЧЕМУ ЭТО ВАЖНО ДЛЯ ТЕБЯ
+4) ЧТО ПРОВЕРИТЬ / СДЕЛАТЬ (маркированный список)
+`.trim();
+
+    const emojiRule = useEmoji
+      ? `EMOJI: разрешены, но умеренно (0–3 на ответ).`
+      : `EMOJI: запрещены.`;
+
+    const baseSystemPrompt = `
+ROLE:
+Ты — персональный аналитик логов и ошибок (RAG). Ты отвечаешь ОДНОМУ пользователю и обязан учитывать его профиль.
+
+IMPORTANT:
+Игнорирование персонализации считается ошибкой ответа.
+
+Brevity policy:
+- Если вопрос можно закрыть одним фактом/числом/словом — ответь одной строкой.
+- НЕ добавляй разделы и списки, если они не нужны для ответа.
+- Формат из 4 секций используй только когда вопрос требует объяснения/анализа.э
+
+Personal questions about the user profile:
+- Если вопрос про имя/роль/рабочие часы/сервисы — отвечай ТОЛЬКО данными профиля.
+- Запрещено добавлять анализ логов, статистику и рекомендации.
+
+${emojiRule}
+
+${userContext}
+
+${decisionPolicy}
+
+${outputRules}
+
+${responseFormat}
+`.trim();
+
     // Системный промпт - разный для статистических и детальных вопросов
     let systemPrompt: string;
     let userMessage: string;
 
     if (isStatisticalQuery) {
-      // Для статистических вопросов - НЕ показываем примеры вообще
-      systemPrompt = `Ты - аналитик данных. Отвечай ТОЛЬКО на основе статистики ниже.
+      systemPrompt = `
+${baseSystemPrompt}
 
+MODE: STATISTICS
+
+AVAILABLE DATA:
+Используй ТОЛЬКО агрегированную статистику ниже. Примеры логов игнорируй полностью.
+
+STATISTICS:
 ${this.getStatistics()}
 
-ИНСТРУКЦИЯ: Используй ТОЛЬКО цифры из статистики выше. Отвечай точно и кратко.`;
+RULES FOR THIS MODE:
+1) Все цифры должны быть строго из STATISTICS.
+2) Никаких догадок, никаких "возможно/вероятно".
+3) Если вопрос про сервисы пользователя — упомяни это в ВЫВОДЕ.
+4) Если критичная ошибка встречается — явно пометь "КРИТИЧНО ДЛЯ ТЕБЯ".
+`.trim();
 
-      userMessage = question;
+      userMessage = `QUESTION:\n${question}`.trim();
     } else {
-      // Для детальных вопросов - показываем примеры
-      systemPrompt = `Ты - аналитик данных, специализирующийся на анализе логов ошибок.
+      systemPrompt = `
+${baseSystemPrompt}
 
-ПОЛНАЯ СТАТИСТИКА (для подсчетов):
+MODE: ANALYSIS
+
+GLOBAL STATISTICS (для подсчётов и контекста):
 ${this.getStatistics()}
 
-⚠️ ВАЖНО: Ниже только ${relevantLogs.length} примеров из ${
+CONTEXT LOGS:
+Ниже приведены примеры (${relevantLogs.length} из ${
         this.allLogs.length
-      } записей!
-Для подсчетов используй статистику выше, примеры - только для деталей (время, IP, метаданные).`;
+      }). Они НЕ отражают полную картину.
+Используй их ТОЛЬКО для деталей (симптомы, паттерны, примеры сообщений), а не для итоговых подсчётов.
+`.trim();
 
       userMessage = `
-Вопрос: ${question}
+QUESTION:
+${question}
 
-Релевантные записи:
+LOG EXAMPLES:
 ${context}
-      `.trim();
+`.trim();
     }
 
     // Получаем ответ от модели
